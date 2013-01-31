@@ -33,6 +33,7 @@ PAUSE=0
 EXECUTE=1
 
 # Default values
+BITRATE=640k
 PRIORITY=0
 FORCE=0
 NOCOLOR=0
@@ -68,6 +69,8 @@ displayhelp() {
 	echo "     -f, --force      Force processing when AC3 track is detected"
 	echo "     -i, --initial    New AC3 track will be first in the file."
 	echo "     -k, --keep-dts   Keep external DTS track (implies '-n')."
+	echo "     -lb              Encode AC3 using a lower bitrate (448k):"
+	echo "     --lower-bitrate"
 	echo "     -m, --nocolor    Do not use colors (monotone)."
 	echo "     --md5            Perform MD5 comparison when copying across drives."
 	echo "     -n, --no-dts     Do not retain the DTS track."
@@ -235,6 +238,9 @@ while [ -z "$MKVFILE" ]; do
 			if [ -z $EXTERNAL ]; then
 				KEEPDTS=1
 			fi
+		;;
+		"-lb" | "--lower-bitrate" ) # Encode AC3 @ 448k bitrate
+			BITRATE=448k
 		;;
 		"-m" | "--nocolor" | "--monotone" ) # Turns off colors
 			NOCOLOR=1
@@ -509,13 +515,13 @@ fi
 # ------ CONVERSION ------
 # Convert DTS to AC3
 doprint $"Converting DTS to AC3."
-doprint "> ffmpeg -i \"$DTSFILE\" -acodec ac3 -ac 6 -ab 448k \"$AC3FILE\""
+doprint "> ffmpeg -i \"$DTSFILE\" -acodec ac3 -ac 6 -ab $BITRATE \"$AC3FILE\""
 
 dopause
 if [ $EXECUTE = 1 ]; then
 	color YELLOW; echo $"Converting DTS to AC3:"; color OFF
 	DTSFILESIZE=$($DUCMD "$DTSFILE" | cut -f1) # Capture DTS filesize for end summary
-	nice -n $PRIORITY ffmpeg -i "$DTSFILE" -acodec ac3 -ac 6 -ab 448k "$AC3FILE" 2>&1|perl -ne '$/="\015";next unless /size=\s*(\d+)/;$|=1;$s='$DTSFILESIZE';printf "Progress: %.0f%\r",450*$1/$s' #run ffmpeg and only show Progress %. Need perl to read \r end of lines
+	nice -n $PRIORITY ffmpeg -i "$DTSFILE" -acodec ac3 -ac 6 -ab $BITRATE "$AC3FILE" 2>&1|perl -ne '$/="\015";next unless /size=\s*(\d+)/;$|=1;$s='$DTSFILESIZE';printf "Progress: %.0f%\r",450*$1/$s' #run ffmpeg and only show Progress %. Need perl to read \r end of lines
 	checkerror $? $"Converting the DTS file to AC3 failed" 1
 
 	# If we are keeping the DTS track external copy it back to original folder before deleting
